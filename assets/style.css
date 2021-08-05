@@ -1,0 +1,177 @@
+#app-container * {
+  box-sizing: border-box;
+  -moz-box-sizing: border-box;
+}
+
+body {
+  background-color: #1e2130;
+  color: #f3f5f4;
+  font-family: "Open Sans", sans-serif;
+  width: 100%;
+  height: 100vh;
+  max-width: 100% !important;
+  overflow-x: hidden;
+  margin: 0;
+}
+
+#big-app-container {
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 6rem;
+}
+
+.banner {
+  height: fit-content;
+  background-color: #1e2130;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #4B5460;
+  padding: 1rem 10rem;
+  width: 100%;
+}
+
+.banner button {
+  color: #95969A;
+  margin-right: 10px;
+  height: 3rem;
+  line-height: 3rem;
+}
+
+
+.banner button:hover {
+  color: #92e0d3;
+  border-color: whitesmoke;
+}
+
+.banner Img {
+  height: 3rem;
+  margin: 0px 10px;
+}
+
+.banner h5 {
+  font-family: 'Open Sans Semi Bold', sans-serif;
+  font-weight: 500;
+  line-height: 1.2;
+  font-size: 2rem;
+  letter-spacing: 0.1rem;
+  text-transform: uppercase;
+}
+
+.banner h6 {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+#banner-logo {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+#banner-text {
+  text-align: center;
+}
+
+#app-content {
+  background: inherit;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+#big-app-container {
+   padding: 1rem;
+ }
+
+#app-container {
+  background: #161a28;
+  margin: 1rem 2rem;
+  max-width: 100%;
+  width: 100%;
+  height: calc(100vh - 10rem - 1px);
+}
+
+
+#tabs {
+  width: 100%;
+}
+
+.custom-tabs {
+  background-color: #1E2130;
+  text-transform: uppercase;
+  font-weight: 600;
+  font-size: 14px;
+  height: fit-content;
+  cursor: pointer;
+}
+
+#Specs-tab.custom-tab, #Control-chart-tab.custom-tab {
+  background-color: #161a28;
+  letter-spacing: 1px;
+  color: inherit;
+  border: 0;
+  border-bottom: #1E2130 solid 4px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  height: 18px;
+}
+
+#Specs-tab.custom-tab--selected, #Control-chart-tab.custom-tab--selected {
+  border-bottom: #91dfd2 solid 4px !important;
+}
+
+#Specs-tab.custom-tab {
+  margin-right: 3px;
+}
+
+#Control-chart-tab.custom-tab {
+  margin-left: 3px;
+}
+
+.section-banner {
+  color: darkgray;
+  font-size: 1.5rem;
+  text-align: left;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #4b5460;
+}
+
+#value-data-set-btn {
+  border: 1px solid #4B5460;
+  color: darkgray;
+}
+
+#value-data-set-btn:hover {
+  color: #91dfd2;
+  border-color: white;
+}
+
+
+
+/* For devices larger than 400px */
+@media (min-width: 400px) {
+  .container {
+    width: 85%;
+    padding: 0;
+  }
+}
+
+/* For devices larger than 550px */
+@media (min-width: 550px) {
+  .container {
+    position: relative;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
