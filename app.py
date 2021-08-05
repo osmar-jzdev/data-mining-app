@@ -15,7 +15,7 @@ import seaborn as sns
 import dash 
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import plotly.express as px
 #manage os system and paths
@@ -127,7 +127,10 @@ def build_tab1_dropdown_files():
                                    options= dd_select_dataset(),
                                    placeholder="Select dataset"
                                    ),
-                               html.Button("Update", id="value-data-set-btn")
+                               html.Br(),
+                               html.Button("Update", id="value-data-set-btn",
+                                           n_clicks = 0),
+                               dcc.Store(id='memory-data')
                                ]
                      )
         ]
@@ -159,6 +162,18 @@ app.layout = html.Div(id="big-app-container",
                                     ),
                                 ],
                       )
+
+
+@app.callback(
+    [Output("memory-data", "data")],
+    [Input("value-data-set-btn","n_clicks"),
+     Input("dropdown-files", "value")],    
+)
+def set_data_selection(btn,val):
+    print("\nbtn",btn)
+    print("\nval",val)
+    data = [val]
+    return data
 
 
 @app.callback(
