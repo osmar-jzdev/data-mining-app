@@ -24,8 +24,7 @@ import pathlib
 
 
 #global variables
-#app_path = str(pathlib.Path(__file__).parent.resolve())
-#data_path = app_path + '\\data'
+df = pd.DataFrame() #empty dataframe
 
 app  = dash.Dash()
 app.title = "Data Mining APP"
@@ -119,35 +118,57 @@ def dd_select_dataset():
     return file_list
 
 
+def build_eda_charts():
+    print(df.head())
+
+    return [html.Div(id='eda-div1',
+                     children=[html.Br(),
+                               dcc.Graph(id='descripting-table1',
+                                figure={
+                                    'data': [],
+                                    'layout': go.Layout()
+                                    }
+                                ),
+                         html.Br(),
+                         html.Div(id='eda-div2',
+                                 children=[html.Br(),
+                                           dcc.Graph(id='descripting-table2',
+                                            figure={
+                                                'data': [],
+                                                'layout': go.Layout()
+                                                }
+                                            )
+                                     ]
+                                 )]
+                     )
+          ]
+    
+    
+
+
 def build_tab1_dropdown_files():
     return [html.Div(id="select-menu-data",
                      children=[html.Br(),
                                dcc.Dropdown(
                                    id='dropdown-files',
                                    options= dd_select_dataset(),
-                                   placeholder="Select dataset"
+                                   placeholder="Select dataset" 
                                    ),
                                html.Br(),
                                html.Button("Update", id="value-data-set-btn",
                                            n_clicks = 0),
-                               dcc.Store(id='memory-data')
+                               dcc.Store(id='memory-data-tab1')
                                ]
                      )
         ]
 
 
 def build_tab2_dash_eda():
-    return [html.Div(id='tab-missing-val',
-                     children=[html.Br(),
-                               dcc.Graph(id='descripting-table',
-                                figure={
-                                    'data': [],
-                                    'layout': go.Layout()
-                                    }
-                                )
-                         ]
-                     )
-            ]
+    if df.empty !=True:
+        return build_eda_charts()
+    else:
+        return [html.Div(id="empty-dev",
+                         children=[dcc.Tab(id='wrn-msg-empty-data')])]
                      
 
 #building the front end app
@@ -163,20 +184,37 @@ app.layout = html.Div(id="big-app-container",
                                 ],
                       )
 
+'''
+@app.callback(
+    [Output("memory-data-eda", "data")],
+    [Input("memory-data-tab1", "data")],
+)
+def update_tab_charts_modules(data_selection):
+    global data 
+    
+    if data_selection.len()!=0:
+        data = read_file(data[0], '.csv')
+        
+    return [data]
+'''   
 
 @app.callback(
-    [Output("memory-data", "data")],
+    [Output("memory-data-tab1", "data")],
     [Input("value-data-set-btn","n_clicks"),
      Input("dropdown-files", "value")],    
 )
-def set_data_selection(btn,val):
-    print("\nbtn",btn)
-    print("\nval",val)
-    data = [val]
-    return data
+def set_data_selection(clicks,drop_down_value):
+    global df 
+    
+    if clicks != 0:
+        data_pth = [drop_down_value]
+        df = read_file(data_pth[0], '.csv')
+    else:
+        data_pth = [None]
+    return data_pth
 
 
-@app.callback(
+@app.callback(  
     [Output("app-content", "children")],
     [Input("app-tabs", "value")],
 )
