@@ -25,7 +25,7 @@ import pathlib
 #global variables
 df = pd.DataFrame() #empty dataframe
 
-app  = dash.Dash()
+app  = dash.Dash(eager_loading=True)
 app.title = "Data Mining APP"
 
 
@@ -69,16 +69,23 @@ def build_tabs():
                 className = "custom-tabs",
                 children = [
                     dcc.Tab(
-                        id = "Specs-tab",#id = "file-selection-tab"
+                        id = "file-selection-tab",#id = "Specs-tab",
                         label = "File Selection",
                         value = "tab1",
                         className = "custom-tab",
                         selected_className = "custom-tab--selected",
                     ),
                     dcc.Tab(
-                        id = "Control-chart-tab", # id = "upload-file-tab"
+                        id = "eda-tab",#id = "Control-chart-tab", # id = "upload-file-tab"
                         label = "Exploration Data Analysis",
                         value = "tab2",
+                        className = "custom-tab",
+                        selected_className = "custom-tab--selected",
+                    ),
+                    dcc.Tab(
+                        id = "Claustering-tab", # id = "upload-file-tab"
+                        label = "Claustering",
+                        value = "tab3",
                         className = "custom-tab",
                         selected_className = "custom-tab--selected",
                     ),
@@ -99,12 +106,12 @@ def read_file(file):
     return df
 
 
-def start_dm():
+#def start_dm():
     #df = px.data.tips()
     #df = read_file('data/Hipoteca.csv')
-    fig = px.histogram(df, x="total_bill", nbins=20)
-    fig.show()    
-    print("")
+#    fig = px.histogram(df, x="total_bill", nbins=20)
+#    fig.show()    
+#    print("")
 
 
 def dd_select_dataset():
@@ -117,6 +124,7 @@ def dd_select_dataset():
                  
     return file_list
 
+
 def missing_null_val():
     #obteniendo total de valores nulos en el dataframe
     df_summary = pd.DataFrame(df.isna().sum(), columns = ['Count Null Values'])
@@ -124,17 +132,17 @@ def missing_null_val():
     #obteniendo valores unicos y total de registros por cada columna
     df_summary['Nunique values'] = df.nunique().to_list()
     df_summary['Count Records'] = df.count().to_list()
-    df_summary['Data Type'] = df.dtypes.to_list()
+    df_summary['Columns'] = df_summary.index.to_list()
+    
     #ordenando las columnas
-    df_summary = df_summary[['Count Records','Count Null Values',
-                             'Nunique values', 'Data Type']]
-    print(df_summary)
+    df_summary = df_summary[['Columns','Count Records',
+                             'Count Null Values','Nunique values']]
+    #print(df_summary)
 
     return df_summary
 
 
-def build_eda_charts():
-    df = missing_null_val()
+def build_eda_charts(df_nan,df_box):
     return [html.Div(id='eda-dashboard',
                      children=[html.Br(),
                                #dcc.Graph(id='descripting-table2',
@@ -144,7 +152,8 @@ def build_eda_charts():
                                #      }
                                #  ),
                                dash_table.DataTable(id='missing-null-val-tab',
-                                                    columns=[{"name": i,"id": i} for i in df.columns],
+                                                    data = df_nan.to_dict('records'),
+                                                    columns=[{"name": i,"id": i} for i in df_nan.columns],
                                                     style_header={
                                                         'backgroundColor': 'black',
                                                         'textAlign': 'center'
@@ -155,7 +164,11 @@ def build_eda_charts():
                                                             'padding': '10px',
                                                             'textAlign': 'center'
                                                         },
-                                                    )
+                                                    ),
+                               html.Br(),
+                               dcc.Graph(id='box-plot',
+                                         figure= px.box(df_box)),
+                               html.Br()
                                ]
                      )
           ]
@@ -182,11 +195,26 @@ def build_tab1_dropdown_files():
 
 def build_tab2_dash_eda():
     if df.empty !=True:
-        return build_eda_charts()
+        df_nan = missing_null_val()
+        df_box = df[df.describe().columns.to_list()]
+        #empty = pd.DataFrame()
+        #print(df_nan.to_dict())
+        return build_eda_charts(df_nan, df_box)
     else:
         return [html.Div(id="empty-dev",
                          children=[dcc.Tab(id='wrn-msg-empty-data')])]
-                     
+
+
+def build_tab3_dash_claustering():
+    #if df.empty !=True:
+        #df_nan = missing_null_val()
+        #empty = pd.DataFrame()
+        #print(df_nan.to_dict())
+        #return build_claustering_charts(df_nan)
+    #else:
+    return [html.Div(id="empty-dev",
+                         children=[dcc.Tab(id='wrn-msg-empty-data')])]
+
 
 #building the front end app
 app.layout = html.Div(id="big-app-container",
@@ -200,8 +228,8 @@ app.layout = html.Div(id="big-app-container",
                                     ),
                                 ],
                       )
-  
 
+  
 
 @app.callback(
     [Output("memory-data-tab1", "data")],
@@ -228,10 +256,21 @@ def render_tab_content(tab_switch):
         return build_tab1_dropdown_files()
     elif tab_switch == 'tab2':
         return build_tab2_dash_eda()
+    elif tab_switch == 'tab3':
+        return build_tab3_dash_claustering()
 
 
 
 if __name__ == '__main__':
-    #start_dm()
     app.run_server()
     
+
+
+#@app.callback(
+#    [Output('missing-null-val-tab', 'data')],
+#    [Input('missing-null-val-tab', 'data')],
+#)
+#def update_missing_null_val_tab(data):
+#    df = missing_null_val()
+#    data = df.to_dict('records')
+#    return data
