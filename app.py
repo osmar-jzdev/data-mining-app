@@ -88,19 +88,20 @@ def build_tabs():
     )
 
 
-def read_file(file, flagType):
-    if flagType == '.csv':
+def read_file(file):
+    if '.csv' in str(file):
         df = pd.read_csv(file)
-    elif flagType == '.xlsx':
+    elif '.xlsx' in str(file):
         df = pd.read_excel(file)
+    elif '.txt' in str(file):
+        df = pd.read_table(file)
     
     return df
 
 
 def start_dm():
-    
     #df = px.data.tips()
-    df = read_file('data/Hipoteca.csv', '.csv')
+    #df = read_file('data/Hipoteca.csv')
     fig = px.histogram(df, x="total_bill", nbins=20)
     fig.show()    
     print("")
@@ -212,7 +213,7 @@ def set_data_selection(clicks,drop_down_value):
     
     if clicks != 0:
         data_pth = [drop_down_value]
-        df = read_file(data_pth[0], '.csv')
+        df = read_file(data_pth[0])
     else:
         data_pth = [None]
     return data_pth
