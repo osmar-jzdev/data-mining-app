@@ -9,13 +9,12 @@ This process it is the first step for a Data Mining Project
 # for manage data 
 import pandas as pd 
 import numpy as np
-# for plot
-import seaborn as sns 
 #for web dashboard 
 import dash 
 import dash_core_components as dcc
 import dash_html_components as html
-from dash.dependencies import Input, Output, State
+import dash_table 
+from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 import plotly.express as px
 #manage os system and paths
@@ -117,29 +116,46 @@ def dd_select_dataset():
                  
     return file_list
 
+def missing_null_val():
+    #obteniendo total de valores nulos en el dataframe
+    df_summary = pd.DataFrame(df.isna().sum(), columns = ['Count Null Values'])
+    df_summary = pd.DataFrame(df.isna().sum(), columns = ['Count Null Values'])
+    #obteniendo valores unicos y total de registros por cada columna
+    df_summary['Nunique values'] = df.nunique().to_list()
+    df_summary['Count Records'] = df.count().to_list()
+    df_summary['Data Type'] = df.dtypes.to_list()
+    #ordenando las columnas
+    df_summary = df_summary[['Count Records','Count Null Values',
+                             'Nunique values', 'Data Type']]
+    print(df_summary)
+
+    return df_summary
+
 
 def build_eda_charts():
-    print(df.head())
-
-    return [html.Div(id='eda-div1',
+    df = missing_null_val()
+    return [html.Div(id='eda-dashboard',
                      children=[html.Br(),
-                               dcc.Graph(id='descripting-table1',
-                                figure={
-                                    'data': [],
-                                    'layout': go.Layout()
-                                    }
-                                ),
-                         html.Br(),
-                         html.Div(id='eda-div2',
-                                 children=[html.Br(),
-                                           dcc.Graph(id='descripting-table2',
-                                            figure={
-                                                'data': [],
-                                                'layout': go.Layout()
-                                                }
-                                            )
-                                     ]
-                                 )]
+                               #dcc.Graph(id='descripting-table2',
+                               #  figure={
+                               #      'data': [],
+                               #      'layout': go.Layout()
+                               #      }
+                               #  ),
+                               dash_table.DataTable(id='missing-null-val-tab',
+                                                    columns=[{"name": i,"id": i} for i in df.columns],
+                                                    style_header={
+                                                        'backgroundColor': 'black',
+                                                        'textAlign': 'center'
+                                                    },
+                                                    style_cell={
+                                                            'backgroundColor': '#1e2130',
+                                                            'color': 'white',
+                                                            'padding': '10px',
+                                                            'textAlign': 'center'
+                                                        },
+                                                    )
+                               ]
                      )
           ]
     
@@ -183,20 +199,8 @@ app.layout = html.Div(id="big-app-container",
                                     ),
                                 ],
                       )
+  
 
-'''
-@app.callback(
-    [Output("memory-data-eda", "data")],
-    [Input("memory-data-tab1", "data")],
-)
-def update_tab_charts_modules(data_selection):
-    global data 
-    
-    if data_selection.len()!=0:
-        data = read_file(data[0], '.csv')
-        
-    return [data]
-'''   
 
 @app.callback(
     [Output("memory-data-tab1", "data")],
