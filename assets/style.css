@@ -112,7 +112,7 @@ body {
 
 #file-selection-tab.custom-tab, 
 #eda-tab.custom-tab, 
-#Claustering-tab.custom-tab {
+#Feature-selection-tab.custom-tab {
   background-color: #161a28;
   letter-spacing: 1px;
   color: inherit;
@@ -128,7 +128,7 @@ body {
 
 #file-selection-tab.custom-tab--selected, 
 #eda-tab.custom-tab--selected,
-#Claustering-tab.custom-tab--selected {
+#Feature-selection-tab.custom-tab--selected {
   border-bottom: #91dfd2 solid 4px !important;
 }
 
@@ -140,7 +140,7 @@ body {
   margin-left: 3px;
 }
 
-#Claustering-tab.custom-tab {
+#Feature-selection-tab.custom-tab {
   margin-left: 3px;
 }
 
