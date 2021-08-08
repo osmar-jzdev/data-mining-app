@@ -112,7 +112,8 @@ body {
 
 #file-selection-tab.custom-tab, 
 #eda-tab.custom-tab, 
-#Feature-selection-tab.custom-tab {
+#Feature-selection-tab.custom-tab,
+#Clustering-tab.custom-tab {
   background-color: #161a28;
   letter-spacing: 1px;
   color: inherit;
@@ -128,7 +129,8 @@ body {
 
 #file-selection-tab.custom-tab--selected, 
 #eda-tab.custom-tab--selected,
-#Feature-selection-tab.custom-tab--selected {
+#Feature-selection-tab.custom-tab--selected,
+#Clustering-tab.custom-tab--selected {
   border-bottom: #91dfd2 solid 4px !important;
 }
 
@@ -141,6 +143,10 @@ body {
 }
 
 #Feature-selection-tab.custom-tab {
+  margin-left: 3px;
+}
+
+#Clustering-tab.custom-tab {
   margin-left: 3px;
 }
 

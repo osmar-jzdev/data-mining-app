@@ -237,9 +237,16 @@ def build_tabs():
                         selected_className = "custom-tab--selected",
                     ),
                     dcc.Tab(
-                        id = "Feature-selection-tab", # id = "upload-file-tab"
+                        id = "Feature-selection-tab", 
                         label = "Feature Selection",
                         value = "tab3",
+                        className = "custom-tab",
+                        selected_className = "custom-tab--selected",
+                    ),
+                    dcc.Tab(
+                        id = "Clustering-tab", 
+                        label = "Clustering",
+                        value = "tab4",
                         className = "custom-tab",
                         selected_className = "custom-tab--selected",
                     ),
@@ -314,28 +321,30 @@ def build_eda_charts(df_nan,df_box,df_desc_num):
           ]
     
 
-def build_feature_scatter_graph(df_n):
+def build_feature_selection_charts(df_n):
     return [html.Div(id='feature-selection-dash',
                      children = [html.Br(),
-            html.Center([html.Div([
-                html.Div([
+             html.Div([
                     dcc.Dropdown(
                         id='xaxis',
                         options=[{'label': i, 'value': i} for i in df_n.columns],
                         value=df_n.columns.to_list()[0]
                     )
-                ],
-                style={'width': '48%', 'display': 'inline-block'}),
-            ])]),
+            ],style={'width': '100%', 'display': 'inline-block'}),
             html.Center([html.Div(id='scatter-plots')]),
             html.Br(),
             html.Center([dcc.Graph(id='correlation-matrix',
-                      figure = px.imshow(df.corr(), width=900, height=900)
+                      figure = px.imshow(df.corr(), width=900, height=900,
+                                         title='Correlation Matrix')
                       )]),
             html.Br()
         ], style={'padding':10})
     ]
     
+
+def build_clustering_charts():
+    return [html.Div(id="empty-data-clus",
+                         children=[dcc.Tab(id='wrn-msg-clus-chart')])]
 
 
 def build_tab1_dropdown_files():
@@ -385,13 +394,30 @@ def build_tab2_dash_eda():
 
 
 def build_tab3_dash_feature_sel():
+    '''
+    Funtion to build the tab 3 if the data was selected or not by the user
+
+    Returns
+    -------
+    Lits
+        Components html and dash to build the module feature selection.
+
+    '''
     if df.empty !=True:
         df_n = df[df.describe().columns.to_list()] #getting only numeric col
-        return build_feature_scatter_graph(df_n)
+        return build_feature_selection_charts(df_n)
     else:
         return [html.Div(id="empty-dev",
                          children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
 
+
+def build_tab4_clustering():
+    if df.empty !=True:
+        return build_clustering_charts()
+    else:
+        return [html.Div(id="empty-dev-clustering",
+                         children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
+    pass
 
 #building the front end app
 app.layout = html.Div(id="big-app-container",
@@ -474,6 +500,9 @@ def render_tab_content(tab_switch):
         return build_tab2_dash_eda()
     elif tab_switch == 'tab3':
         return build_tab3_dash_feature_sel()
+    elif tab_switch == 'tab4':
+        return build_tab4_clustering()
+    
 
 
 
