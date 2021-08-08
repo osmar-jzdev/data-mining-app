@@ -118,6 +118,52 @@ def desc_data(type_desc):
     return df_desc
 
 
+def multiple_scatter_graphs(xaxis_name):
+    '''
+    Funtion to display scatter graphs depending on the column selected.
+    Column selected VS rest of the columns
+
+    Parameters
+    ----------
+    xaxis_name : Str
+        Column selected by the user in the dropdown selection component.
+
+    Returns
+    -------
+    list_charts : List
+        List of figures created.
+
+    '''
+    df_n = df[df.describe().columns.to_list()]
+    list_charts = []
+    for col in df_n.columns:
+        if col != xaxis_name:
+            list_charts.append(dcc.Graph(id='fig-scatter-{}'.format(col),
+                                         figure={'data': [go.Scatter(
+                                                    x=df_n[xaxis_name],
+                                                    y=df_n[col],
+                                                    mode='markers',
+                                                    marker={
+                                                        'size': 15,
+                                                        'opacity': 0.6,
+                                                        'line': {'width':0.5, 
+                                                                 'color':'white'}
+                                                        }
+                                                    )],
+                                                'layout': go.Layout(
+                                                    xaxis={'title': xaxis_name},
+                                                    yaxis={'title': col},
+                                                    hovermode='closest',
+                                                    height=700,
+                                                    width=1000
+                                                )
+                                            }
+                                         )
+                               )
+            list_charts.append(html.Br())
+            
+    return list_charts
+
 
 def build_banner():
     '''
@@ -144,7 +190,7 @@ def build_banner():
                 id="banner-logo",
                 children=[
                     html.Button(
-                        id="learn-more-button", children="Acerca de", n_clicks=0
+                        id="learn-more-button",children="Acerca de",n_clicks=0
                     ),
                     html.A(
                         html.Img(id="logo", src='assets/icon_analyze.gif',
@@ -184,7 +230,7 @@ def build_tabs():
                         selected_className = "custom-tab--selected",
                     ),
                     dcc.Tab(
-                        id = "eda-tab",#id = "Control-chart-tab", # id = "upload-file-tab"
+                        id = "eda-tab",#id = "Control-chart-tab", 
                         label = "Exploration Data Analysis",
                         value = "tab2",
                         className = "custom-tab",
@@ -226,44 +272,44 @@ def build_eda_charts(df_nan,df_box,df_desc_num):
     '''
     return [html.Div(id='eda-dashboard',
                      children=[html.Br(),
-                               html.Label(" Exploration columns "),
-                               dash_table.DataTable(id='missing-null-val-tab',
-                                                    data = df_nan.to_dict('records'),
-                                                    columns=[{"name": i,"id": i} for i in df_nan.columns],
-                                                    style_header={
-                                                        'backgroundColor': 'black',
-                                                        'textAlign': 'center'
-                                                    },
-                                                    style_cell={
-                                                            'backgroundColor': '#1e2130',
-                                                            'color': 'white',
-                                                            'padding': '10px',
-                                                            'textAlign': 'center'
-                                                        },
-                                                    ),
-                               html.Br(),
-                               dcc.Graph(id='box-plot',
-                                         figure= px.box(df_box, 
-                                                        title='Atypic Values Detection')),
-                               html.Br(),
-                               html.Label(" Describing numeric columns "),
-                               dash_table.DataTable(id='describe-num-tab',
-                                                    data = df_desc_num.to_dict('records'),
-                                                    columns=[{"name": i,"id": i} for i in df_desc_num.columns],
-                                                    style_header={
-                                                        'backgroundColor': 'black',
-                                                        'textAlign': 'center'
-                                                    },
-                                                    style_cell={
-                                                            'backgroundColor': '#1e2130',
-                                                            'color': 'white',
-                                                            'padding': '10px',
-                                                            'textAlign': 'center'
-                                                        },
-                                                    ),
-                               html.Br(),
-                               html.Br(),
-                               ]
+                        html.Label(" Exploration columns "),
+                        dash_table.DataTable(id='missing-null-val-tab',
+                                             data = df_nan.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in df_nan.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
+                        html.Br(),
+                        dcc.Graph(id='box-plot',
+                                  figure= px.box(df_box, 
+                                                 title='Atypic Values Detection')),
+                        html.Br(),
+                        html.Label(" Describing numeric columns "),
+                        dash_table.DataTable(id='describe-num-tab',
+                                             data = df_desc_num.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in df_desc_num.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
+                        html.Br(),
+                        html.Br(),
+                        ]
                      )
           ]
     
@@ -271,7 +317,7 @@ def build_eda_charts(df_nan,df_box,df_desc_num):
 def build_feature_scatter_graph(df_n):
     return [html.Div(id='feature-selection-dash',
                      children = [html.Br(),
-            html.Div([
+            html.Center([html.Div([
                 html.Div([
                     dcc.Dropdown(
                         id='xaxis',
@@ -280,16 +326,8 @@ def build_feature_scatter_graph(df_n):
                     )
                 ],
                 style={'width': '48%', 'display': 'inline-block'}),
-         
-                html.Div([
-                    dcc.Dropdown(
-                        id='yaxis',
-                        options=[{'label': i, 'value': i} for i in df_n.columns],
-                        value=df_n.columns.to_list()[1]
-                    )
-                ],style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
-            ]),
-            dcc.Graph(id='feature-graphic'),
+            ])]),
+            html.Center([html.Div(id='scatter-plots')]),
             html.Br(),
             html.Center([dcc.Graph(id='correlation-matrix',
                       figure = px.imshow(df.corr(), width=900, height=900)
@@ -370,29 +408,10 @@ app.layout = html.Div(id="big-app-container",
 
   
 @app.callback(
-    Output('feature-graphic', 'figure'),
-    [Input('xaxis', 'value'),
-     Input('yaxis', 'value')])
-def update_feature_scatter_graph(xaxis_name, yaxis_name):
-    return {
-        'data': [go.Scatter(
-            x=df[xaxis_name],
-            y=df[yaxis_name],
-            #text=df['name'],
-            mode='markers',
-            marker={
-                'size': 15,
-                'opacity': 0.5,
-                'line': {'width': 0.5, 'color': 'white'}
-            }
-        )],
-        'layout': go.Layout(
-            xaxis={'title': xaxis_name},
-            yaxis={'title': yaxis_name},
-            #margin={'l': 40, 'b': 40, 't': 10, 'r': 0},
-            hovermode='closest'
-        )
-    }
+    Output('scatter-plots','children'),
+    [Input('xaxis', 'value')])
+def update_feature_scatter_graph(xaxis_name):
+    return multiple_scatter_graphs(xaxis_name)
 
 
 
