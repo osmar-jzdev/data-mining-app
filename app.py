@@ -267,34 +267,39 @@ def build_eda_charts(df_nan,df_box,df_desc_num):
                      )
           ]
     
-def build_feature_selctn_charts():
-    return [html.Div(id='fs-dashboard',
-                     children=[html.Br(),
-                               html.Label(" Feature Selection "),
-                               dcc.Graph(id='scatter-plot-by-column',
-                                         figure= {}),
-                               html.Br(),
-                               html.Label(" Describing numeric columns "),
-                               dash_table.DataTable(id='describe-num-tab2',
-                                                    data = df.to_dict('records'),
-                                                    columns=[{"name": i,"id": i} for i in df.columns],
-                                                    style_header={
-                                                        'backgroundColor': 'black',
-                                                        'textAlign': 'center'
-                                                    },
-                                                    style_cell={
-                                                            'backgroundColor': '#1e2130',
-                                                            'color': 'white',
-                                                            'padding': '10px',
-                                                            'textAlign': 'center'
-                                                        },
-                                                    ),
-                               html.Br(),
-                               html.Br(),
-                               ]
-                     )
-          ]
+
+def build_feature_scatter_graph(df_n):
+    return [html.Div(id='feature-selection-dash',
+                     children = [html.Br(),
+            html.Div([
+                html.Div([
+                    dcc.Dropdown(
+                        id='xaxis',
+                        options=[{'label': i, 'value': i} for i in df_n.columns],
+                        value=df_n.columns.to_list()[0]
+                    )
+                ],
+                style={'width': '48%', 'display': 'inline-block'}),
+         
+                html.Div([
+                    dcc.Dropdown(
+                        id='yaxis',
+                        options=[{'label': i, 'value': i} for i in df_n.columns],
+                        value=df_n.columns.to_list()[1]
+                    )
+                ],style={'width': '48%', 'float': 'right', 'display': 'inline-block'})
+            ]),
+            dcc.Graph(id='feature-graphic'),
+            html.Br(),
+            html.Center([dcc.Graph(id='correlation-matrix',
+                      figure = px.imshow(df.corr(), width=900, height=900)
+                      )]),
+            html.Br()
+        ], style={'padding':10})
+    ]
     
+
+
 def build_tab1_dropdown_files():
     '''
     Function to build and display the dropdown selecton files and update button
@@ -343,13 +348,11 @@ def build_tab2_dash_eda():
 
 def build_tab3_dash_feature_sel():
     if df.empty !=True:
-        #df_nan = missing_null_val()
-        #empty = pd.DataFrame()
-        #print(df_nan.to_dict())
-        return build_feature_selctn_charts()
+        df_n = df[df.describe().columns.to_list()] #getting only numeric col
+        return build_feature_scatter_graph(df_n)
     else:
         return [html.Div(id="empty-dev",
-                         children=[dcc.Tab(id='wrn-msg-empty-data')])]
+                         children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
 
 
 #building the front end app
@@ -366,6 +369,32 @@ app.layout = html.Div(id="big-app-container",
                       )
 
   
+@app.callback(
+    Output('feature-graphic', 'figure'),
+    [Input('xaxis', 'value'),
+     Input('yaxis', 'value')])
+def update_feature_scatter_graph(xaxis_name, yaxis_name):
+    return {
+        'data': [go.Scatter(
+            x=df[xaxis_name],
+            y=df[yaxis_name],
+            #text=df['name'],
+            mode='markers',
+            marker={
+                'size': 15,
+                'opacity': 0.5,
+                'line': {'width': 0.5, 'color': 'white'}
+            }
+        )],
+        'layout': go.Layout(
+            xaxis={'title': xaxis_name},
+            yaxis={'title': yaxis_name},
+            #margin={'l': 40, 'b': 40, 't': 10, 'r': 0},
+            hovermode='closest'
+        )
+    }
+
+
 
 @app.callback(
     [Output("memory-data-tab1", "data")],
