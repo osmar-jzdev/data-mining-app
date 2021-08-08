@@ -2,9 +2,8 @@
 @author: Osmar Jrz
 
 This app explore data from a file and export the results into a dashboard
-to understand the key results from the exploration data process.
+to understand the key results from the End to End Data Mining process.
 
-This process it is the first step for a Data Mining Project
 '''
 # for manage data 
 import pandas as pd 
@@ -20,10 +19,16 @@ import plotly.express as px
 #manage os system and paths
 import os
 import pathlib
-
+#to use algorithm K Means with elbow method 
+from sklearn.cluster import KMeans
+from sklearn.metrics import pairwise_distances_argmin_min
+from kneed import KneeLocator
+from mpl_toolkits.mplot3d import Axes3D
 
 #global variables
-df = pd.DataFrame() #empty dataframe
+df = pd.DataFrame() #empty dataframe with the original data loaded
+df_kmeans = pd.DataFrame() #empty dataframe for kmeans algorithm 
+df_cluster = pd.DataFrame() #empty dataframe for kmeans output - clustering out
 
 app  = dash.Dash(eager_loading=True)
 app.title = "Data Mining APP"
@@ -164,6 +169,54 @@ def multiple_scatter_graphs(xaxis_name):
             
     return list_charts
 
+
+def kmeans_algorithm():
+    global df_cluster
+    df_cluster = df_kmeans.copy()
+    
+    SSE = [] #return list
+    for i in range(2,12):
+        km = KMeans(n_clusters=i, random_state=0)
+        km.fit(df_kmeans)
+        SSE.append(km.inertia_)
+        
+    kl = KneeLocator(range(2,12),SSE,curve='convex',direction='decreasing')
+    kl.elbow
+    #return kl
+    print(type(kl))
+    MParticional = KMeans(n_clusters=4, random_state=0).fit(df_kmeans)
+    MParticional.predict(df_kmeans)
+    MParticional.labels_
+    
+    df_cluster['clusterP'] = MParticional.labels_
+    
+    CentroidesP = MParticional.cluster_centers_
+    l_col = [col for col in df_kmeans.columns.to_list() if col != 'clusterP']
+    df_cluster_desc = pd.DataFrame(CentroidesP.round(4), columns=l_col)
+    
+    '''
+    plt.rcParams['figure.figsize'] = (10, 7)
+    plt.style.use('ggplot')
+    colores=['red', 'blue', 'green', 'yellow']
+    asignar=[]
+    for row in MParticional.labels_:
+        asignar.append(colores[row])
+    
+    fig = plt.figure()
+    ax = Axes3D(fig)
+    ax.scatter(MHipoteca.iloc[:, 0], MHipoteca.iloc[:, 1], MHipoteca.iloc[:, 2], marker='o', c=asignar, s=60)
+    ax.scatter(CentroidesP[:, 0], CentroidesP[:, 1], CentroidesP[:, 2], marker='*', c=colores, s=1000)
+    plt.show()
+    '''
+    
+    figure_3d = ''
+    Cercanos,_ = pairwise_distances_argmin_min(MParticional.cluster_centers_, df_kmeans)
+    #Cercanos
+    #plt.style.use('ggplot')
+    #kl.plot_knee()
+    
+    
+    return  SSE, df_cluster_desc, figure_3d, Cercanos
 
 def build_banner():
     '''
@@ -340,13 +393,30 @@ def build_feature_selection_charts(df_n):
             html.Br()
         ], style={'padding':10})
     ]
-    
+
+
+def build_clustering_selection():
+    return [html.Div([
+                       dcc.Dropdown(
+                           id='dropdown-select-drop',
+                           options=[{'label': i, 
+                                     'value': i} for i in df.columns],
+                           placeholder='Select the column to drop...'
+                       )
+               ],style={'width': '100%',
+                        'display': 'inline-block'}),
+                        html.Div(id='clustering-algorithm-charts'),
+            ]
+
 
 def build_clustering_charts():
-    return [html.Div(id="empty-data-clus",
-                         children=[dcc.Tab(id='wrn-msg-clus-chart')])]
+    return [html.Div(id="clustering-dashbord",
+                         children=build_clustering_selection()
+                         )
+            ]
 
-
+                                       
+                                         
 def build_tab1_dropdown_files():
     '''
     Function to build and display the dropdown selecton files and update button
@@ -412,12 +482,22 @@ def build_tab3_dash_feature_sel():
 
 
 def build_tab4_clustering():
+    '''
+    Funtion to build the dashboard for claustering in case that a data has been 
+    selected.
+
+    Returns
+    -------
+    List
+        Html and dash components to build in the UI the dashboard for clustering
+
+    '''
     if df.empty !=True:
         return build_clustering_charts()
     else:
         return [html.Div(id="empty-dev-clustering",
                          children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
-    pass
+    
 
 #building the front end app
 app.layout = html.Div(id="big-app-container",
@@ -432,14 +512,64 @@ app.layout = html.Div(id="big-app-container",
                                 ],
                       )
 
+
+@app.callback(
+    #Output('clustering-algorithm-charts','children'),
+    Output('clustering-dashbord','children'),
+    [Input('dropdown-select-drop','value')])
+def update_df_column_dropped(column_to_drop):
+    '''
+    Update the clustering dashboard based on the column dropped to predict
+    Parameters
+    ----------
+    column_to_drop : Str
+        Column to drop from the dataframe to predict values.
+
+    Returns
+    -------
+    List
+        Html and dash components with the clustering algorithm plots.
+
+    '''
+    print("\nColumn to drop: ", column_to_drop)
+    if column_to_drop != None:
+        global df_kmeans
+        df_kmeans = df.copy()
+        print(df.columns)
+        df_kmeans = df.drop([column_to_drop], axis=1)
+        print(df_kmeans.columns)
+        out1_sse, out2_df_desc_cluster, out3_fig, out4_cercanos = kmeans_algorithm()
+        #df_cluster.groupby('clusterP')['clusterP'].count()#table 
+        
+        #df_cluster scatter plot
+        #plt.figure(figsize=(8,4))
+        #plt.scatter(MHipoteca['ingresos'], MHipoteca['gastos_comunes'], c=MParticional.labels_, cmap='rainbow')
+        #plt.show()
+        return [html.Div(id="empty-dev-clustering",
+                             children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
+    else:
+        return build_clustering_selection()
+
   
 @app.callback(
     Output('scatter-plots','children'),
     [Input('xaxis', 'value')])
 def update_feature_scatter_graph(xaxis_name):
+    '''
+    Update the scatter graphs based on the column selected
+
+    Parameters
+    ----------
+    xaxis_name : Str
+        Column selected to build the scatter plots.
+
+    Returns
+    -------
+    List
+        Html and dash components with the scatter plots to build in the dash app
+
+    '''
     return multiple_scatter_graphs(xaxis_name)
-
-
 
 @app.callback(
     [Output("memory-data-tab1", "data")],
