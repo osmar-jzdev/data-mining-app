@@ -179,20 +179,38 @@ def kmeans_algorithm():
         km = KMeans(n_clusters=i, random_state=0)
         km.fit(df_kmeans)
         SSE.append(km.inertia_)
-        
+    
+    fig_sse = px.line(x=range(2,12), 
+                    y=SSE, 
+                    title='Elbow Method',
+                    line_shape='spline',
+                    labels={'x':'Number of Clusters K',
+                            'y':'SSE'})
+    fig_sse.update_traces(mode='markers+lines')
+
     kl = KneeLocator(range(2,12),SSE,curve='convex',direction='decreasing')
-    kl.elbow
-    #return kl
-    print(type(kl))
+    fig_kl = px.line(x=range(2,12), 
+                    y=SSE, 
+                    title='Knee Point',
+                    line_shape='spline',
+                    labels={'x':'Number of Clusters K',
+                            'y':'SSE'})
+    fig_kl.update_traces(mode='markers+lines')
+    fig_kl = fig_kl.add_vline(x= kl.elbow, line_width=4, 
+                              fillcolor="red", opacity=0.6)
+   
+    
     MParticional = KMeans(n_clusters=4, random_state=0).fit(df_kmeans)
     MParticional.predict(df_kmeans)
-    MParticional.labels_
+    
     
     df_cluster['clusterP'] = MParticional.labels_
     
     CentroidesP = MParticional.cluster_centers_
     l_col = [col for col in df_kmeans.columns.to_list() if col != 'clusterP']
+    
     df_cluster_desc = pd.DataFrame(CentroidesP.round(4), columns=l_col)
+    df_cluster_desc['Cluster'] = [numCluster for numCluster in range(0,kl.elbow)]
     
     '''
     plt.rcParams['figure.figsize'] = (10, 7)
@@ -211,12 +229,9 @@ def kmeans_algorithm():
     
     figure_3d = ''
     Cercanos,_ = pairwise_distances_argmin_min(MParticional.cluster_centers_, df_kmeans)
-    #Cercanos
-    #plt.style.use('ggplot')
-    #kl.plot_knee()
+
     
-    
-    return  SSE, df_cluster_desc, figure_3d, Cercanos
+    return  fig_sse, fig_kl, df_cluster_desc, figure_3d, Cercanos
 
 def build_banner():
     '''
@@ -531,22 +546,71 @@ def update_df_column_dropped(column_to_drop):
         Html and dash components with the clustering algorithm plots.
 
     '''
-    print("\nColumn to drop: ", column_to_drop)
     if column_to_drop != None:
         global df_kmeans
         df_kmeans = df.copy()
-        print(df.columns)
+        #print(df.columns)
         df_kmeans = df.drop([column_to_drop], axis=1)
-        print(df_kmeans.columns)
-        out1_sse, out2_df_desc_cluster, out3_fig, out4_cercanos = kmeans_algorithm()
-        #df_cluster.groupby('clusterP')['clusterP'].count()#table 
+        #print(df_kmeans.columns)
+        out1_sse,out2_kl,out3_descCluster,out4_fig,out6_cercanos = kmeans_algorithm()
+        
+        df_grpby_cluster = df_cluster.groupby('clusterP',
+                                              as_index=False).count()
+        df_grpby_cluster = df_grpby_cluster.iloc[:,0:2]
+        df_grpby_cluster.columns = ['Clusters','Number of Records']
         
         #df_cluster scatter plot
         #plt.figure(figsize=(8,4))
         #plt.scatter(MHipoteca['ingresos'], MHipoteca['gastos_comunes'], c=MParticional.labels_, cmap='rainbow')
         #plt.show()
-        return [html.Div(id="empty-dev-clustering",
-                             children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
+        return [html.Div(id="kmeans-algorithm-charts",
+                             children=[dcc.Graph(id='elbow-method-chart',
+                                                 figure= out1_sse),
+                                       html.Br(),
+                                       dcc.Graph(id='knee-point-chart',
+                                                 figure= out2_kl),
+                                       html.Br(),
+                                       html.Center([html.Label(" DESCRIBING RESULTS OF CLUSTERING PROCESS ")]),
+                                       html.Br(),
+                                       dash_table.DataTable(id='num-clusters',
+                                             data = df_grpby_cluster.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in df_grpby_cluster.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
+                                       html.Br(),
+                                       dcc.Graph(id='scatter-clusters-plot',
+                                         figure=px.scatter(df_cluster,
+                                                        x=df_cluster.iloc[:,0], 
+                                                        y=df_cluster.iloc[:,1], 
+                                                        color='clusterP')
+                                         ),
+                                       html.Br(),
+                                       dash_table.DataTable(id='describing-clusters-table',
+                                             data = out3_descCluster.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in out3_descCluster.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
+                                       ]
+                             )
+                ]
     else:
         return build_clustering_selection()
 
@@ -639,13 +703,3 @@ def render_tab_content(tab_switch):
 if __name__ == '__main__':
     app.run_server()
     
-
-
-#@app.callback(
-#    [Output('missing-null-val-tab', 'data')],
-#    [Input('missing-null-val-tab', 'data')],
-#)
-#def update_missing_null_val_tab(data):
-#    df = missing_null_val()
-#    data = df.to_dict('records')
-#    return data
