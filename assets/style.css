@@ -97,7 +97,8 @@ body {
 }
 
 
-#tabs {
+#tabs,
+#tabs-logisticReg {
   width: 100%;
 }
 
@@ -113,7 +114,10 @@ body {
 #file-selection-tab.custom-tab, 
 #eda-tab.custom-tab, 
 #Feature-selection-tab.custom-tab,
-#Clustering-tab.custom-tab {
+#Clustering-tab.custom-tab,
+#Logistic-regression-tab.custom-tab,
+#split-data-subtab.custom-tab,
+#final-user-predict-subtab.custom-tab {
   background-color: #161a28;
   letter-spacing: 1px;
   color: inherit;
@@ -130,7 +134,10 @@ body {
 #file-selection-tab.custom-tab--selected, 
 #eda-tab.custom-tab--selected,
 #Feature-selection-tab.custom-tab--selected,
-#Clustering-tab.custom-tab--selected {
+#Clustering-tab.custom-tab--selected,
+#Logistic-regression-tab.custom-tab--selected,
+#split-data-subtab.custom-tab--selected,
+#final-user-predict-subtab.custom-tab--selected {
   border-bottom: #91dfd2 solid 4px !important;
 }
 
@@ -147,6 +154,18 @@ body {
 }
 
 #Clustering-tab.custom-tab {
+  margin-left: 3px;
+}
+
+#Logistic-regression-tab.custom-tab {
+  margin-left: 3px;
+}
+
+#split-data-subtab.custom-tab {
+  margin-left: 3px;
+}
+
+#final-user-predict-subtab.custom-tab {
   margin-left: 3px;
 }
 
