@@ -31,11 +31,12 @@ from sklearn.metrics import accuracy_score
 
 #global variables
 df = pd.DataFrame() #empty dataframe with the original data loaded
+df_n = pd.DataFrame() #empty dataframe only with the numeric columns
 df_kmeans = pd.DataFrame() #empty dataframe for kmeans algorithm 
 df_cluster = pd.DataFrame() #empty dataframe for kmeans output - clustering out
-model_vars = pd.DataFrame() #empy dataframe to store the model predict variables 
+model_vars = pd.DataFrame() #empty dataframe to store the model predict variables 
+predict_vars = pd.DataFrame() #empty dataframe to store dependent variables 
 final_model = None #global variable to store the clasification model obtained
-inputs_textBox_id = [] #empty list to store global input data to predict
 
 
 app  = dash.Dash(eager_loading=True)
@@ -147,7 +148,7 @@ def multiple_scatter_graphs(xaxis_name):
         List of figures created.
 
     '''
-    df_n = df[df.describe().columns.to_list()]
+    #df_n = df[df.describe().columns.to_list()]
     list_charts = []
     for col in df_n.columns:
         if col != xaxis_name:
@@ -520,7 +521,7 @@ def build_eda_charts(df_nan,df_box,df_desc_num):
           ]
     
 
-def build_feature_selection_charts(df_n):
+def build_feature_selection_charts():
     return [html.Div(id='feature-selection-dash',
                      children = [html.Br(),
              html.Div([
@@ -546,7 +547,7 @@ def build_clustering_selection():
                        dcc.Dropdown(
                            id='dropdown-select-drop',
                            options=[{'label': i, 
-                                     'value': i} for i in df.columns],
+                                     'value': i} for i in df_n.columns],
                            placeholder='Select the column to drop...'
                        )
                ],style={'width': '100%',
@@ -562,7 +563,7 @@ def build_clustering_charts():
             ]
 
 def build_subtab_build_model():
-    col_list = df.columns.to_list()   
+    col_list = df_n.columns.to_list()   
     return [html.Div(id="build-model-subtab",
                      children=[html.Center([
                          html.Br(),
@@ -593,9 +594,7 @@ def build_subtab_build_model():
 
 
 def multiple_input_data(column_name):
-    global inputs_textBox_id
-    inputs_textBox_id.append("input-box-{}".format(column_name))
-    
+    print("input-box-{}".format(column_name))
     return html.Div([
                     html.Label(column_name),
                     dcc.Input(id="input-box-{}".format(column_name), 
@@ -603,7 +602,7 @@ def multiple_input_data(column_name):
                             type="text",
                             style={"margin-left": "18px"}),
                     html.Br(),
-                    html.P(id="output"),
+                    html.P(id='space1'),
                 ]
             )
         
@@ -617,6 +616,7 @@ def build_subtab_predict_data():
                              html.Br(),
                              html.Label("Type new values for each variable in order to display a prediction of new data"),
                              html.Br(),
+                             html.P(id='space2'),
                              html.Div(id='input-data-div',
                                       children = [multiple_input_data(col) for col in l_col]),
                              html.Br(),
@@ -687,9 +687,11 @@ def build_tab3_dash_feature_sel():
         Components html and dash to build the module feature selection.
 
     '''
+    global df_n
+    
     if df.empty !=True:
         df_n = df[df.describe().columns.to_list()] #getting only numeric col
-        return build_feature_selection_charts(df_n)
+        return build_feature_selection_charts()
     else:
         return [html.Div(id="empty-dev",
                          children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
@@ -763,17 +765,34 @@ app.layout = html.Div(id="big-app-container",
                                 ],
                       )
 
-'''
+
 @app.callback(
     Output("new-prediction-output", "children"),
     [Input("submit-predict-data-btn","n_clicks")],
-    [State("input-box-{}".format(col), "value") for col in inputs_textBox_id]
+    [Input("input-box-{}".format(col), "value") for col in model_vars.columns.to_list()],
 )
-def update_prediction_data_subtab(submit_click, *vals):
-     return " | ".join((str(val) for val in vals if val))
-    return [html.Div(id="msg-predict",
-                         children=[dcc.Label("Prediction Data")])]
-'''
+def update_prediction_data_subtab(submit_click_sub2,*vals):
+    print([v for v in vals])
+    if submit_click_sub2 != 0:
+        print([val for val in vals if val]  )
+        newData = [val for val in vals]        
+        print(newData)
+        #df_newData = pd.DataFrame(newData, columns = model_vars.columns.to_list())
+        #print(df_newData)
+        
+        #print(final_model.predict(df_newData))
+        #val_predict = final_model.predict(df_newData)
+        
+        #df_prediction = pd.DataFrame(val_predict, columns = predict_vars.columns.to_list())
+        #print(df_prediction)
+        
+        return [html.Div(id="msg-predict",
+                         children=[html.Label("Prediction Data"),
+                                   ])]
+    else:
+        return [html.Div(id="empty-dev-predit",
+                         children=[dcc.Tab(id='wrn-msg-empty-data-predict')])]
+
 
 @app.callback(  
     [Output('classifier-model-report-summary', "children")],
@@ -783,11 +802,13 @@ def update_prediction_data_subtab(submit_click, *vals):
 )
 def update_split_data(submit_click, x_data, y_data):
     if submit_click != 0 and len(x_data)!=0 and len(y_data)!=0:
-        global model_vars
+        global model_vars, predict_vars
         
         X = np.array(df[x_data])
         Y = np.array(df[y_data])
+        
         model_vars = df[x_data]
+        predict_vars = df[y_data]
         
         score,conf_matrix,exactitud,report,intercept,coeffs = logistic_regression_model(X,Y)  
         return [html.Div(id="classifier-model-output",
@@ -882,9 +903,9 @@ def update_df_column_dropped(column_to_drop):
     '''
     if column_to_drop != None:
         global df_kmeans
-        df_kmeans = df.copy()
+        df_kmeans = df_n.copy()
         #print(df.columns)
-        df_kmeans = df.drop([column_to_drop], axis=1)
+        df_kmeans = df_n.drop([column_to_drop], axis=1)
         #print(df_kmeans.columns)
         out1_sse,out2_kl,out3_descCluster,out4_fig,out5_cercanos = kmeans_algorithm()
         
@@ -1058,7 +1079,6 @@ if __name__ == '__main__':
     app.run_server()
 
 
-#TODO: in Feature Selection drop the string columns
 #TODO: in Feature Selection update the dataframe with the columns with strong
 #       correlations, more tha 7.5 and not counting the diagonal value 
 #TODO: in feature selection update figure scatter points with different colors 
