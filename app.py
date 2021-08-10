@@ -13,7 +13,7 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_table 
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import plotly.express as px
 #manage os system and paths
@@ -23,12 +23,18 @@ import pathlib
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
 from kneed import KneeLocator
-from mpl_toolkits.mplot3d import Axes3D
+#to use and generate a Logistic Regression Model 
+from sklearn import linear_model
+from sklearn import model_selection
+from sklearn.metrics import classification_report
+from sklearn.metrics import accuracy_score
 
 #global variables
 df = pd.DataFrame() #empty dataframe with the original data loaded
 df_kmeans = pd.DataFrame() #empty dataframe for kmeans algorithm 
 df_cluster = pd.DataFrame() #empty dataframe for kmeans output - clustering out
+model_vars = pd.DataFrame() #empy dataframe to store the model predict variables 
+final_model = None #global variable to store the clasification model obtained
 
 app  = dash.Dash(eager_loading=True)
 app.title = "Data Mining APP"
@@ -269,6 +275,86 @@ def kmeans_algorithm():
     return  fig_sse, fig_kl, df_cluster_desc, figure_3d, Cercanos
 
 
+def logistic_regression_model(X, Y):
+    '''
+    Funtion to get a logistic regression model based on splitting data selected
+
+    Parameters
+    ----------
+    X : Array
+        Numpy Array with the X data, which are the variables for the linear
+        model.
+        
+    Y : Array
+        Numpy Array with the Y data, which are dependet variables for the linear
+        model
+
+    Returns
+    -------
+    score : Float
+        Score of the Linear Model.
+        
+    conf_matrix : Pandas Cross Table
+        Confusion Matrix or Classification Matrix
+        
+    exactitud : Float
+        Float number which represent the pression of the model to predict values.
+        
+    report : Array
+        Table with the classification report.
+        
+    intercept : Float
+        Classification intercept value.
+        
+    coeffs : Float List
+        Coefficient of the classification model variables.
+
+    '''
+    global final_model
+    
+    Clasificacion = linear_model.LogisticRegression() 
+    seed = 1234
+    X_train,X_validation,Y_train,Y_validation=model_selection.train_test_split(X, 
+                                                                Y, 
+                                                                test_size=0.2, 
+                                                                random_state=seed, 
+                                                                shuffle = True)
+    Clasificacion.fit(X_train, Y_train)
+    
+    #Probabilidad = Clasificacion.predict_proba(X_train)
+    #df_probabilidad = pd.DataFrame(Probabilidad)
+    
+    Predicciones = Clasificacion.predict(X_train)
+    #df_predicciones = pd.DataFrame(Predicciones)
+    
+    score = Clasificacion.score(X_train, Y_train)
+    PrediccionesNuevas = Clasificacion.predict(X_validation)
+    conf_matrix = pd.crosstab(Y_validation.ravel(), PrediccionesNuevas, 
+                                   rownames=['Real'], 
+                                   colnames=['Clasificación'])
+    
+    iname = conf_matrix.index.name
+    cname = conf_matrix.columns.name
+    conf_matrix = conf_matrix.reset_index()
+    conf_matrix.rename(columns={conf_matrix.columns[0]: iname + ' / ' + cname},
+                       inplace=True)
+    
+    #Reporte de la clasificación
+    exactitud = Clasificacion.score(X_validation, Y_validation)
+    report = classification_report(Y_validation, PrediccionesNuevas,
+                                   output_dict=True)
+    df_report = pd.DataFrame(report).transpose()
+    #df_report = df_report.sort_values(by=['f1-score'], ascending=False)
+    
+    #Ecuación del modelo
+    intercept =  Clasificacion.intercept_
+    coeffs =  Clasificacion.coef_
+    
+    final_model = Clasificacion
+    
+    return score,conf_matrix,exactitud,df_report,intercept,coeffs
+
+
 def build_banner():
     '''
     Funtion to build the top banner of the Application
@@ -356,7 +442,7 @@ def build_tabs():
                     ),
                     dcc.Tab(
                         id = "Logistic-regression-tab", 
-                        label = "Logistic Regression Classifier",
+                        label = "Logistic Regression",
                         value = "tab5",
                         className = "custom-tab",
                         selected_className = "custom-tab--selected",
@@ -473,7 +559,42 @@ def build_clustering_charts():
                          )
             ]
 
-                                       
+def build_subtab_build_model():
+    col_list = df.columns.to_list()   
+    return [html.Div(id="build-model-subtab",
+                     children=[html.Center([
+                         html.Br(),
+                         html.Label("Select Predictible Variables (X data)"),
+                         html.Br(),
+                         dcc.Checklist(id='x-data-checklist',
+                                       options=[{'label':col,
+                                                 'value':col} for col in col_list],
+                                        labelStyle={'display': 'inline-block'}
+                                        ),
+                         html.Br(),
+                         html.Label("Select Class Variable (Y data)"),
+                         html.Br(),
+                         dcc.Checklist(id='y-data-checklist',
+                                       options=[{'label':col,
+                                                 'value':col} for col in col_list],
+                                        labelStyle={'display': 'inline-block'}
+                                        ),
+                         html.Br(),
+                         html.Button("Submit", id="submit-split-data-btn",
+                                           n_clicks = 0),
+                         ]),
+                         html.Br(),
+                         html.Div(id='classifier-model-report-summary')    
+                         ]
+                     )
+            ]
+
+
+def build_subtab_predict_data():
+    return [html.Div(id="empty-dev-sub2",
+                         children=[dcc.Tab(id='wrn-msg-empty-data-subtab2')])]
+
+                                   
                                          
 def build_tab1_dropdown_files():
     '''
@@ -556,34 +677,42 @@ def build_tab4_clustering():
         return [html.Div(id="empty-dev-clustering",
                          children=[dcc.Tab(id='wrn-msg-empty-data-2')])]
 
-def build_tab5_logisticReg():
-    return [html.Div(id = "tabs-logisticReg",
+
+
+def build_tab5_logisticReg():   
+    if df.empty != True:
+        return [html.Div(id = "tabs-logisticReg",
                     className = "tabs",
                     children = [
-                        dcc.Tabs(
-                            id = "app-tabs",
-                            value = "tab1",
+                            dcc.Tabs(
+                            id = "app-subtabs",
+                            value = "subtab1",
                             className = "custom-tabs",
                             children = [
                                 dcc.Tab(
                                     id = "split-data-subtab",
-                                    label = "File Selection",
-                                    value = "tab1",
+                                    label = "Build Module",
+                                    value = "subtab1",
                                     className = "custom-tab",
                                     selected_className = "custom-tab--selected",
                                 ),
                                 dcc.Tab(
                                     id = "final-user-predict-subtab",
-                                    label = "Exploration Data Analysis",
-                                    value = "tab2",
+                                    label = "Predict New Data",
+                                    value = "subtab2",
                                     className = "custom-tab",
                                     selected_className = "custom-tab--selected",
                                 )
                             ]
-                            )
+                            ),
+                            html.Div(id="app-content-subtabs")
                         ]
-                    )
-            ]
+                    )]
+    else:
+        return [html.Div(id="empty-dev-lr",
+                         children=[dcc.Tab(id='wrn-msg-empty-data-lr')])]
+    
+                
     
 
 #building the front end app
@@ -598,6 +727,94 @@ app.layout = html.Div(id="big-app-container",
                                     ),
                                 ],
                       )
+
+
+@app.callback(  
+    [Output('classifier-model-report-summary', "children")],
+    [Input("submit-split-data-btn", "n_clicks")],
+    [State("x-data-checklist","value"),
+     State("y-data-checklist","value")]
+)
+def update_split_data(submit_click, x_data, y_data):
+    if submit_click != 0 and len(x_data)!=0 and len(y_data)!=0:
+        global model_vars
+        
+        X = np.array(df[x_data])
+        Y = np.array(df[y_data])
+        model_vars = X
+        
+        score,conf_matrix,exactitud,report,intercept,coeffs = logistic_regression_model(X,Y)  
+        return [html.Div(id="classifier-model-output",
+                         children=[html.Br(),
+                                   html.Center([html.Label("SCORE MODEL  >>  {}".format(score))]),
+                                   html.Br(),
+                                   html.Center([html.Label("ACCURACY MODEL  >>  {}".format(exactitud))]),
+                                   html.Br(),
+                                   html.Center([html.Label("CLASIFICATION MATRIX")]),
+                                   dash_table.DataTable(id='conf-matrix',
+                                             data = conf_matrix.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in conf_matrix.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
+                                   html.Br(),
+                                   html.Center([html.Label("CLASIFICATION REPORT")]),
+                                   dash_table.DataTable(id='classification-report',
+                                             data = report.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in report.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
+                                   html.Br()
+                             ]
+                         )
+                ]
+    else:
+        return [html.Div(id="empty-dev-lr",
+                         children=[dcc.Tab(id='wrn-msg-empty-data-lr')])]
+
+
+@app.callback(  
+    [Output("app-content-subtabs", "children")],
+    [Input("app-subtabs", "value")],
+)
+def render_subtabs(subtab_switch):
+    '''
+    Function to update the subTabs selection for the logistic regresssion module.
+
+    Parameters
+    ----------
+    tab_switch : Str
+        ID for the dash component of the subtab selected by the user.
+
+    Returns
+    -------
+    List
+        Based on the subtab slected by the user a function returns building the 
+        dash and html components for the substab selected.
+
+    '''
+    if subtab_switch == 'subtab1':
+        return build_subtab_build_model()
+    elif subtab_switch == 'subtab2':
+        return build_subtab_predict_data()
+
 
 
 @app.callback(

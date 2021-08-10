@@ -177,12 +177,14 @@ body {
   border-bottom: 1px solid #4b5460;
 }
 
-#value-data-set-btn {
+#value-data-set-btn,
+#submit-split-data-btn {
   border: 1px solid #4B5460;
   color: darkgray;
 }
 
-#value-data-set-btn:hover {
+#value-data-set-btn:hover,
+#submit-split-data-btn:hover {
   color: #91dfd2;
   border-color: white;
 }
