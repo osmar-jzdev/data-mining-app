@@ -35,6 +35,8 @@ df_kmeans = pd.DataFrame() #empty dataframe for kmeans algorithm
 df_cluster = pd.DataFrame() #empty dataframe for kmeans output - clustering out
 model_vars = pd.DataFrame() #empy dataframe to store the model predict variables 
 final_model = None #global variable to store the clasification model obtained
+inputs_textBox_id = [] #empty list to store global input data to predict
+
 
 app  = dash.Dash(eager_loading=True)
 app.title = "Data Mining APP"
@@ -590,9 +592,42 @@ def build_subtab_build_model():
             ]
 
 
+def multiple_input_data(column_name):
+    global inputs_textBox_id
+    inputs_textBox_id.append("input-box-{}".format(column_name))
+    
+    return html.Div([
+                    html.Label(column_name),
+                    dcc.Input(id="input-box-{}".format(column_name), 
+                            placeholder="Type value", 
+                            type="text",
+                            style={"margin-left": "18px"}),
+                    html.Br(),
+                    html.P(id="output"),
+                ]
+            )
+        
+
+
 def build_subtab_predict_data():
-    return [html.Div(id="empty-dev-sub2",
-                         children=[dcc.Tab(id='wrn-msg-empty-data-subtab2')])]
+    if model_vars.empty != True:
+        l_col = model_vars.columns.to_list()
+        return [html.Div(id='subtab-predict-data',
+                         children = [html.Center([
+                             html.Br(),
+                             html.Label("Type new values for each variable in order to display a prediction of new data"),
+                             html.Br(),
+                             html.Div(id='input-data-div',
+                                      children = [multiple_input_data(col) for col in l_col]),
+                             html.Br(),
+                             html.Button("Submit", id="submit-predict-data-btn",
+                                         n_clicks = 0),
+                             html.Div(id='new-prediction-output')])
+                          ]
+                    )]
+    else:
+        return [html.Div(id="empty-dev-pd",
+                         children=[dcc.Tab(id='wrn-msg-empty-data-pd')])]
 
                                    
                                          
@@ -603,7 +638,7 @@ def build_tab1_dropdown_files():
     Returns
     -------
     list
-        The html, adn dash components to display this selection fiel section.
+        The html and dash components to display this selection fiel section.
 
     '''
     return [html.Div(id="select-menu-data",
@@ -728,6 +763,17 @@ app.layout = html.Div(id="big-app-container",
                                 ],
                       )
 
+'''
+@app.callback(
+    Output("new-prediction-output", "children"),
+    [Input("submit-predict-data-btn","n_clicks")],
+    [State("input-box-{}".format(col), "value") for col in inputs_textBox_id]
+)
+def update_prediction_data_subtab(submit_click, *vals):
+     return " | ".join((str(val) for val in vals if val))
+    return [html.Div(id="msg-predict",
+                         children=[dcc.Label("Prediction Data")])]
+'''
 
 @app.callback(  
     [Output('classifier-model-report-summary', "children")],
@@ -741,7 +787,7 @@ def update_split_data(submit_click, x_data, y_data):
         
         X = np.array(df[x_data])
         Y = np.array(df[y_data])
-        model_vars = X
+        model_vars = df[x_data]
         
         score,conf_matrix,exactitud,report,intercept,coeffs = logistic_regression_model(X,Y)  
         return [html.Div(id="classifier-model-output",
