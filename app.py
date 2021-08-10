@@ -644,7 +644,7 @@ def build_subtab_build_model():
 
 
 def multiple_input_data(column_name):
-    print("input-box-{}".format(column_name))
+    #print("input-box-{}".format(column_name))
     return html.Div([
                     html.Label(column_name),
                     dcc.Input(id="input-box-{}".format(column_name), 
@@ -859,8 +859,9 @@ def update_prediction_data_subtab(submit_click_sub2):#,*vals):
         
         
         val_predict = final_model.predict(df_newData)
+        predictSerie = pd.Series([val_predict], index=predict_vars.columns.to_list())
         
-        df_prediction = df_prediction.append(val_predict, ignore_idex=True)
+        df_prediction = df_prediction.append(predictSerie, ignore_index=True)
         
         return [html.Div(id="msg-predict",
                          children=[html.Br(),
@@ -1186,10 +1187,5 @@ def render_tab_content(tab_switch):
 if __name__ == '__main__':
     app.run_server()
 
-
-#TODO: in Feature Selection update the dataframe with the columns with strong
-#       correlations, more tha 7.5 and not counting the diagonal value 
+ 
 #TODO: in feature selection update figure scatter points with different colors 
-    
-    
-    
