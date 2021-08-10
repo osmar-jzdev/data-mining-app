@@ -16,9 +16,12 @@ import dash_table
 from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 import plotly.express as px
-#manage os system and paths
+#manage os system, paths, dates and streamed data
 import os
 import pathlib
+import base64
+import io
+import datetime
 #to use algorithm K Means with elbow method 
 from sklearn.cluster import KMeans
 from sklearn.metrics import pairwise_distances_argmin_min
@@ -37,7 +40,6 @@ df_cluster = pd.DataFrame() #empty dataframe for kmeans output - clustering out
 model_vars = pd.DataFrame() #empty dataframe to store the model predict variables 
 predict_vars = pd.DataFrame() #empty dataframe to store dependent variables 
 final_model = None #global variable to store the clasification model obtained
-
 
 app  = dash.Dash(eager_loading=True)
 app.title = "Data Mining APP"
@@ -86,6 +88,54 @@ def dd_select_dataset():
         file_list.append({'label':file, 'value':data_path + '\\' + file})
                  
     return file_list
+
+
+def parse_contents(contents, filename, date):
+    global df
+    content_type, content_string = contents.split(',')
+
+    decoded = base64.b64decode(content_string)
+    try:
+        if 'csv' in filename:
+            # Assume that the user uploaded a CSV file
+            df = pd.read_csv(io.StringIO(decoded.decode('utf-8')))
+        elif 'xls' in filename:
+            # Assume that the user uploaded an excel file
+            df = pd.read_excel(io.BytesIO(decoded))
+    except Exception as e:
+        print(e)
+        return html.Div([
+            'There was an error processing this file.'
+        ])
+
+    return html.Div([
+        html.H5(filename),
+        html.H6(datetime.datetime.fromtimestamp(date)),
+
+        dash_table.DataTable(
+            data=df.to_dict('records'),
+            columns=[{'name': i, 'id': i} for i in df.columns],
+            style_header={
+                        'backgroundColor': 'black',
+                        'textAlign': 'center'
+                    },
+            style_cell={
+                    'backgroundColor':'#1e2130',
+                    'color': 'white',
+                    'padding': '10px',
+                    'textAlign': 'center'
+                },
+        ),
+
+        html.Hr(),  # horizontal line
+
+        # For debugging, display the raw contents provided by the web browser
+        html.Div('Raw Content'),
+        html.Pre(contents[0:200] + '...', style={
+            'whiteSpace': 'pre-wrap',
+            'wordBreak': 'break-all'
+        })
+    ])
 
 
 def missing_null_val():
@@ -609,8 +659,10 @@ def multiple_input_data(column_name):
 
 
 def build_subtab_predict_data():
+    global input_state_id
     if model_vars.empty != True:
         l_col = model_vars.columns.to_list()
+        input_box_children = [multiple_input_data(col) for col in l_col]
         return [html.Div(id='subtab-predict-data',
                          children = [html.Center([
                              html.Br(),
@@ -618,10 +670,11 @@ def build_subtab_predict_data():
                              html.Br(),
                              html.P(id='space2'),
                              html.Div(id='input-data-div',
-                                      children = [multiple_input_data(col) for col in l_col]),
+                                      children = input_box_children),
                              html.Br(),
                              html.Button("Submit", id="submit-predict-data-btn",
                                          n_clicks = 0),
+                             html.Br(),
                              html.Div(id='new-prediction-output')])
                           ]
                     )]
@@ -631,7 +684,7 @@ def build_subtab_predict_data():
 
                                    
                                          
-def build_tab1_dropdown_files():
+def build_tab1_load_files():
     '''
     Function to build and display the dropdown selecton files and update button
 
@@ -649,9 +702,30 @@ def build_tab1_dropdown_files():
                                    placeholder="Select dataset" 
                                    ),
                                html.Br(),
-                               html.Button("Update", id="value-data-set-btn",
-                                           n_clicks = 0),
-                               dcc.Store(id='memory-data-tab1')
+                               html.Center([html.Button("Update", id="value-data-set-btn",
+                                           n_clicks = 0)]),
+                               dcc.Store(id='memory-data-tab1'),
+                               html.Br(),
+                               html.P(id='space-load-data'),
+                               dcc.Upload(
+                                id='upload-data',
+                                children=html.Div([
+                                    'Drag and Drop or ',
+                                    html.A('Select Files')
+                                ]),
+                                style={
+                                    'width': '100%',
+                                    'height': '60px',
+                                    'lineHeight': '60px',
+                                    'borderWidth': '1px',
+                                    'borderStyle': 'dashed',
+                                    'borderRadius': '5px',
+                                    'textAlign': 'center',
+                                    'margin': '10px'
+                                },
+                                multiple=True),
+                               html.Div(id='output-data-upload'),
+
                                ]
                      )
         ]
@@ -767,27 +841,46 @@ app.layout = html.Div(id="big-app-container",
 
 
 @app.callback(
-    Output("new-prediction-output", "children"),
+    [Output("new-prediction-output","children")],
     [Input("submit-predict-data-btn","n_clicks")],
-    [Input("input-box-{}".format(col), "value") for col in model_vars.columns.to_list()],
+    #[State("input-box-{}".format(_),"value") for _ in tuple(model_vars.columns.to_list())]
 )
-def update_prediction_data_subtab(submit_click_sub2,*vals):
-    print([v for v in vals])
+def update_prediction_data_subtab(submit_click_sub2):#,*vals):
     if submit_click_sub2 != 0:
-        print([val for val in vals if val]  )
-        newData = [val for val in vals]        
-        print(newData)
-        #df_newData = pd.DataFrame(newData, columns = model_vars.columns.to_list())
-        #print(df_newData)
+        df_newData = pd.DataFrame(columns = model_vars.columns.to_list())
+        df_prediction = pd.DataFrame(columns = predict_vars.columns.to_list())
+         
+        #24.54	181.0	0.05263	0.04362	0.1587	0.05884 
+        newData = [12067, 909,892, 500, 10000,321204,1]        
         
-        #print(final_model.predict(df_newData))
-        #val_predict = final_model.predict(df_newData)
+        newDataSerie = pd.Series(newData, index=model_vars.columns.to_list())
+    
+        df_newData = df_newData.append(newDataSerie, ignore_index=True)
         
-        #df_prediction = pd.DataFrame(val_predict, columns = predict_vars.columns.to_list())
-        #print(df_prediction)
+        
+        val_predict = final_model.predict(df_newData)
+        
+        df_prediction = df_prediction.append(val_predict, ignore_idex=True)
         
         return [html.Div(id="msg-predict",
-                         children=[html.Label("Prediction Data"),
+                         children=[html.Br(),
+                                   html.P(id='space3'),
+                                   html.Label("Prediction Data"),
+                                   html.Br(),
+                                   dash_table.DataTable(id='prediction-output-table',
+                                             data = df_prediction.to_dict('records'),
+                                             columns=[{"name": i,"id": i} for i in df_prediction.columns],
+                                             style_header={
+                                                 'backgroundColor': 'black',
+                                                 'textAlign': 'center'
+                                             },
+                                             style_cell={
+                                                     'backgroundColor':'#1e2130',
+                                                     'color': 'white',
+                                                     'padding': '10px',
+                                                     'textAlign': 'center'
+                                                 },
+                                             ),
                                    ])]
     else:
         return [html.Div(id="empty-dev-predit",
@@ -1008,6 +1101,21 @@ def update_feature_scatter_graph(xaxis_name):
     '''
     return multiple_scatter_graphs(xaxis_name)
 
+
+@app.callback(
+    Output('output-data-upload', 'children'),
+    Input('upload-data', 'contents'),
+    State('upload-data', 'filename'),
+    State('upload-data', 'last_modified')
+)
+def update_upload_file(list_of_contents, list_of_names, list_of_dates):
+    if list_of_contents is not None:
+        children = [
+            parse_contents(c, n, d) for c, n, d in
+            zip(list_of_contents, list_of_names, list_of_dates)]
+        return children
+
+
 @app.callback(
     [Output("memory-data-tab1", "data")],
     [Input("value-data-set-btn","n_clicks"),
@@ -1062,7 +1170,7 @@ def render_tab_content(tab_switch):
 
     '''
     if tab_switch == 'tab1':
-        return build_tab1_dropdown_files()
+        return build_tab1_load_files()
     elif tab_switch == 'tab2':
         return build_tab2_dash_eda()
     elif tab_switch == 'tab3':
@@ -1072,9 +1180,9 @@ def render_tab_content(tab_switch):
     elif tab_switch == 'tab5':
         return build_tab5_logisticReg()
     
-
-
-
+    
+    
+    
 if __name__ == '__main__':
     app.run_server()
 
